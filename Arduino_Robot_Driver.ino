@@ -58,6 +58,6 @@ digitalWrite(pinCW_Right,HIGH);            // go clockwise
   do {} while ((enc_count_Left < 3*12*64) && (enc_count_Right < 3*12*64));   // do nothing until wheel makes 3 rotations
   digitalWrite(pinCW_Left,LOW);             // stop
   digitalWrite(pinCW_Right,LOW);
-  delay(1000);                              // wait 0.5 seconds
+  delay(500);                              // wait 0.5 seconds
 }
 
