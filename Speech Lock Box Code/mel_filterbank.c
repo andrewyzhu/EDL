@@ -32,11 +32,11 @@ void melFilterCenters(int * fftBin){
     }
 }
 
-//512 fft magnitudes, 28 filterbank points, 26 filterbank energies
+//256 fft magnitudes, 28 filterbank points, 26 filterbank energies
 void melCoefficients(float * magnitude, int * filterbank, float * filterbank_energies){
     int h;
     float i;
-    for(h = 1; h <= 512; h++){
+    for(h = 1; h <= 256; h++){
         i = (float)h;
         if((i > filterbank[0]) && (i < filterbank[1])){
                 filterbank_energies[0] += ((i-filterbank[0])/(filterbank[1]-filterbank[0]))*magnitude[h-1];
@@ -222,5 +222,12 @@ void melCoefficients(float * magnitude, int * filterbank, float * filterbank_ene
         else if((i > filterbank[26]) && (i < filterbank[27])){
                 filterbank_energies[25] += ((i-filterbank[26])/(filterbank[27]-filterbank[26]))*magnitude[h-1];
         }
+    }
+}
+
+void logEnergies(float * filterbank_energies){
+    int i;
+    for(i = 0; i < 26; i++){
+        filterbank_energies[i] = (float)log10((double)filterbank_energies[i]);
     }
 }
