@@ -14,6 +14,7 @@
 #include "compute.h"
 #include "uart.h"
 #include "pwm.h"
+#include "dct.h"
 
 #define STANDBYE (uint8_t)(3)
 #define FILL (uint8_t)(1)
@@ -48,13 +49,13 @@ volatile int thresholdcount =0;
  */
 void main(void){
     __disable_interrupt();
-	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		// stop watchdog timer
-	configureGPIO();
-	configureADC();
-	configureCLOCKS();
-	configureSYSTICK();
-	configureUART();
-	configureTIMERA0();
+    WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;     // stop watchdog timer
+    configureGPIO();
+    configureADC();
+    configureCLOCKS();
+    configureSYSTICK();
+    configureUART();
+    configureTIMERA0();
 
     //creating buffers in dynamic memory
     PrimaryBuff = malloc(sizeof(CircBuf_t));
@@ -79,67 +80,58 @@ void main(void){
     speakingStatus.leftcommand =0;
     speakingStatus.rightcommand =0;
 
-	//initialize complex data array and output frequency magnitude array
-	complex_t complexData[SAMPLES];
-	complex_t total[HALF];
-	float magnitude[HALF];
-	float mel_filterbank_energy[26];
-	for(i=0;i<n;i++){
-	    if(n<halfn){
-	        total[i].real =0;
-	        total[i].imag=0;
-	        magnitude[i] = 0;
-	    }
-	    if(i<26){
-	        mel_filterbank_energy[i]=0;
+    //initialize complex data array and output frequency magnitude array
+    complex_t complexData[SAMPLES];
+    complex_t total[HALF];
+    float magnitude[HALF];
+    float mel_filterbank_energy[26];
+    float mfcc[12]
+    for(i=0;i<n;i++){
+        if(n<halfn){
+            total[i].real =0;
+            total[i].imag=0;
+            magnitude[i] = 0;
+        }
+        if(i<26){
+            mel_filterbank_energy[i]=0;
             compareVector[i] =0;
             fc[i] =0;
             bc[i] =0;
             rc[i] =0;
             lc[i] =0;
-	    }
-	    complexData[i].real = 0;
+        }
+        complexData[i].real = 0;
         complexData[i].imag = 0;
-	}
+    }
 
-	//creating twiddles
-	float tsin[HALF];
-	float tcos[HALF];
-	float hamming[SAMPLES];
-	int start =n-100;
-	create_tables(tcos,tsin,hamming);
+    //creating twiddles
+    float tsin[HALF];
+    float tcos[HALF];
+    float hamming[SAMPLES];
+    int start =n-100;
+    create_tables(tcos,tsin,hamming);
 
-	//initialize buffer status
-	set_buffer_status(PrimaryBuff, STANDBYE);
-	set_buffer_status(SecondaryBuff,STANDBYE);
+    //initialize buffer status
+    set_buffer_status(PrimaryBuff, STANDBYE);
+    set_buffer_status(SecondaryBuff,STANDBYE);
 
 
-	__enable_interrupt();
+    __enable_interrupt();
 
-	while(1){
+    while(1){
 
-	    //testing if audio input reaches threshold
-	    if(speakingStatus.finishSpeaking ==1){
-	        test_threshold();
-	    }
+        //testing if audio input reaches threshold
+        if(speakingStatus.finishSpeaking ==1){
+            test_threshold();
+        }
 
-	    if(speakingStatus.speaking ==1){
-	        __enable_interrupts();
-	        if((PrimaryBuff->num_items == start) && (SecondaryBuff->standbye==1)){
+        if(speakingStatus.speaking ==1){
+            __enable_interrupts();
+            if((PrimaryBuff->num_items == start) && (SecondaryBuff->standbye==1)){
                 set_buffer_status(SecondaryBuff,FILL);
-	        }
-	        if(buffer_full(PrimaryBuff)==1){
-	            set_buffer_status(PrimaryBuff, PROCESS);
-	            fftCalculation(complexData,tcos,tsin,magnitude,hamming);
-                for(i=0;i<halfn;i++){
-                    total[i].real+= complexData[i].real;
-                    total[i].imag+= complexData[i].imag;
-                }
-                fftcount++;
-	            NOP ^= BIT0; //breakpoint
-	        }
-	        if(buffer_full(SecondaryBuff)==1){
-	            set_buffer_status(SecondaryBuff,PROCESS);
+            }
+            if(buffer_full(PrimaryBuff)==1){
+                set_buffer_status(PrimaryBuff, PROCESS);
                 fftCalculation(complexData,tcos,tsin,magnitude,hamming);
                 for(i=0;i<halfn;i++){
                     total[i].real+= complexData[i].real;
@@ -147,22 +139,32 @@ void main(void){
                 }
                 fftcount++;
                 NOP ^= BIT0; //breakpoint
-	        }
+            }
+            if(buffer_full(SecondaryBuff)==1){
+                set_buffer_status(SecondaryBuff,PROCESS);
+                fftCalculation(complexData,tcos,tsin,magnitude,hamming);
+                for(i=0;i<halfn;i++){
+                    total[i].real+= complexData[i].real;
+                    total[i].imag+= complexData[i].imag;
+                }
+                fftcount++;
+                NOP ^= BIT0; //breakpoint
+            }
 
-	        //calculating magnitude in frequency bins
-	        if(speakingStatus.finishSpeaking==1){
-	            __disable_interrupt();
-	            calculate_magnitude_and_compare(total,magnitude,fc,bc,lc,rc,compareVector,mel_filterbank_energy);
-	            //clear buffers
-	            clear_buffer(PrimaryBuff);
-	            clear_buffer(SecondaryBuff);
-	            //reset buffer status
-	            set_buffer_status(PrimaryBuff, STANDBYE);
-	            set_buffer_status(SecondaryBuff,STANDBYE);
-	            thresholdcount =0;
-	            P1->OUT &= ~BIT0;//end processing
-	            __enable_interrupt();
-	        }
-	    }
-	}//end of while(1) loop
+            //calculating magnitude in frequency bins
+            if(speakingStatus.finishSpeaking==1){
+                __disable_interrupt();
+                calculate_magnitude_and_compare(total,magnitude,fc,bc,lc,rc,compareVector,mel_filterbank_energy,mfcc);
+                //clear buffers
+                clear_buffer(PrimaryBuff);
+                clear_buffer(SecondaryBuff);
+                //reset buffer status
+                set_buffer_status(PrimaryBuff, STANDBYE);
+                set_buffer_status(SecondaryBuff,STANDBYE);
+                thresholdcount =0;
+                P1->OUT &= ~BIT0;//end processing
+                __enable_interrupt();
+            }
+        }
+    }//end of while(1) loop
 }//end of main
