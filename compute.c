@@ -1,8 +1,8 @@
 /*
  * compute.c
  *
- *  Created on: Dec 2, 2017
- *      Author: samaustin
+ *  Created on: Apr 26, 2018
+ *      Author: anzh1
  */
 
 #include "compute.h"
@@ -14,6 +14,7 @@
 #include "pwm.h"
 #include"mel_filterbank.h"
 #include "gpio.h"
+#include "dct.h"
 
 #define STANDBYE (uint8_t)(3)
 #define FILL (uint8_t)(1)
@@ -53,10 +54,11 @@ void test_threshold(){
     __enable_interrupt();
 }
 
-void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[]){
+void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[], float mfcc[]){
     int halfn = n/2;
     float power[HALF];
     int fftbin[28];
+    float dct_result[26];
 
     for(i =0;i<halfn;i++){
         power[i]=0;
@@ -77,14 +79,15 @@ void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float f
     melFilterCenters(fftbin);
     melCoefficients(power,fftbin,mel_filterbank_energy);
     logEnergies(mel_filterbank_energy);
+    dct(mel_filterbank_energy,dct_result,mfcc);
 
     forwardDifference =0;
     backwardDifference=0;
     leftDifference=0;
     rightDifference=0;
-    for(i=0;i<26;i++){
+    for(i=0;i<12;i++){
         if(speakingStatus.comparemode ==1){
-            compareVector[i] = mel_filterbank_energy[i];
+            compareVector[i] = mfcc[i];
             rightDifference+=(compareVector[i]-rc[i]);
             leftDifference+=(compareVector[i]-lc[i]);
             backwardDifference+=(compareVector[i]-bc[i]);
@@ -92,16 +95,16 @@ void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float f
         }
         else{
             if(speakingStatus.rightcommand ==1){
-                rc[i] = mel_filterbank_energy[i];
+                rc[i] = mfcc[i];
             }
             else if(speakingStatus.leftcommand ==1){
-                lc[i] = mel_filterbank_energy[i];
+                lc[i] = mfcc[i];
             }
             else if(speakingStatus.backwardcommand ==1){
-                bc[i] = mel_filterbank_energy[i];
+                bc[i] = mfcc[i];
             }
             else{
-                fc[i] = mel_filterbank_energy[i];
+                fc[i] = mfcc[i];
             }
         }
     }
@@ -335,3 +338,5 @@ void ftoa(float n, char *res, int afterpoint)
         intToStr((int)fpart, res + i + 1, afterpoint);
     }
 }
+
+

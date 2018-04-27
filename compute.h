@@ -1,12 +1,17 @@
 /*
  * compute.h
  *
- *  Created on: Dec 2, 2017
- *      Author: samaustin
+ *  Created on: Apr 26, 2018
+ *      Author: anzh1
  */
+
+#ifndef COMPUTE_H_
+#define COMPUTE_H_
+
 #include"fft.h"
 #include"circbuf.h"
 #include"mel_filterbank.h"
+#include "dct.h"
 
 #ifndef COMPUTE_H_
 #define COMPUTE_H_
@@ -22,7 +27,7 @@ typedef struct{
     volatile int rightcommand;
 }Status_t;
 
-void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[]);
+void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[],float mfcc[]);
 void test_threshold();
 void set_speaking_status(uint8_t status);
 void newline();
@@ -34,5 +39,10 @@ void leftformat();
 void rightformat();
 void print_diff(float diff1,float diff2,float diff3,float diff4);
 void look_for_match(float forwardDifference,float backwardDifference,float leftDifference, float rightDifference);
+
+#endif /* COMPUTE_H_ */
+
+
+
 
 #endif /* COMPUTE_H_ */
