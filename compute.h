@@ -42,7 +42,3 @@ void look_for_match(float forwardDifference,float backwardDifference,float leftD
 
 #endif /* COMPUTE_H_ */
 
-
-
-
-#endif /* COMPUTE_H_ */
