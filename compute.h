@@ -5,9 +5,6 @@
  *      Author: anzh1
  */
 
-#ifndef COMPUTE_H_
-#define COMPUTE_H_
-
 #include"fft.h"
 #include"circbuf.h"
 #include"mel_filterbank.h"
@@ -15,6 +12,7 @@
 
 #ifndef COMPUTE_H_
 #define COMPUTE_H_
+
 
 typedef struct{
     volatile int speaking;
