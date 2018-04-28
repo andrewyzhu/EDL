@@ -85,7 +85,7 @@ void main(void){
     complex_t total[HALF];
     float magnitude[HALF];
     float mel_filterbank_energy[26];
-    float mfcc[12]
+    float mfcc[12];
     for(i=0;i<n;i++){
         if(n<halfn){
             total[i].real =0;
