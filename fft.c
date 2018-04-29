@@ -29,10 +29,10 @@
 extern int i;
 extern int n;
 extern int NOP;
+extern int srate;
 extern int fftcount;
 extern Status_t speakingStatus;
 extern CircBuf_t * PrimaryBuff;
-extern CircBuf_t * SecondaryBuff;
 
 void create_tables(float tcos[], float tsin[],float hamming[]){
     for(i=0;i<n;i++){
@@ -55,46 +55,20 @@ unsigned int reverse_bits(int num, int bits){
     return reverse_num;
 }
 
-void fftCalculation( complex_t complexData[],float tcos[],float tsin[],float magnitude[],float hamming[]){
+void fftCalculation( complex_t complexData[],float tcos[],float tsin[],float hamming[]){
     float holdreal,hold,holdimag; //holding value
-    int  k, j,l,size,big;
-
-
+    int  k, j,l,size;
     //transfer data in buffer to complex_data array
-    big =0;
     for(i=0;i<n;i++){
-        if(PrimaryBuff->processing ==1){
-            complexData[i].real =remove_item_from_buffer(PrimaryBuff);
-        }
-        if(SecondaryBuff->processing ==1){
-            complexData[i].real =remove_item_from_buffer(SecondaryBuff);
-        }
-        if(big<complexData[i].real){
-            big = complexData[i].real;
-        }
-        complexData[i].imag =0;
-    }
-
-    if(SecondaryBuff->processing ==1){
-        set_buffer_status(SecondaryBuff, FILL);
-    }
-    if(PrimaryBuff->processing == 1){
-        set_buffer_status(PrimaryBuff, FILL);
-    }
-
-   for(i=0;i<n;i++){
+        complexData[i].real =remove_item_from_buffer(PrimaryBuff);
         complexData[i].real *= hamming[i];
-        //complexData[i].real *=0.1;
-   }
-
-    if(big<2500){
-        __disable_interrupt();
-        set_speaking_status(END);
+        //complexData[i].real *=0.01;
+        complexData[i].imag=0;
+        if(complexData[i].real >3200){
+            NOP^=BIT0;
+        }
     }
-    else{
-        set_speaking_status(RESUME);
-    }
-
+    NOP^=BIT0;
     //reversing bits for fft conversion
     for(i=0;i<n;i++){
         int new_reversed = reverse_bits(i,BITS);
@@ -126,4 +100,5 @@ void fftCalculation( complex_t complexData[],float tcos[],float tsin[],float mag
             }
         }
     }
+
 }

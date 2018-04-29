@@ -27,10 +27,8 @@
 //global variables
 volatile uint16_t sound;
 volatile CircBuf_t * PrimaryBuff;
-volatile CircBuf_t * SecondaryBuff;
 volatile Status_t speakingStatus;
 volatile int countsystick = 0;
-volatile int fftcount=0;
 volatile float forwardDifference=0;
 volatile float backwardDifference=0;
 volatile float leftDifference=0;
@@ -38,8 +36,11 @@ volatile float rightDifference=0;
 volatile uint8_t lock=1;
 volatile int NOP =1;
 volatile int n = 512;
+volatile int binSize =26;
+volatile int srate =512;
 #define SAMPLES (int)(512)
 #define HALF (int)(256)
+#define BINSIZE (uint8_t)(26)
 volatile int i;
 volatile int thresholdcount =0;
 
@@ -58,15 +59,13 @@ void main(void){
 
     //creating buffers in dynamic memory
     PrimaryBuff = malloc(sizeof(CircBuf_t));
-    initialize_buffer(PrimaryBuff,n);
-    SecondaryBuff = malloc(sizeof(CircBuf_t));
-    initialize_buffer(SecondaryBuff,n);
+    initialize_buffer(PrimaryBuff,srate);
 
-    float fc[26];
-    float bc[26];
-    float lc[26];
-    float rc[26];
-    float compareVector[26];
+    float fc[BINSIZE];
+    float bc[BINSIZE];
+    float lc[BINSIZE];
+    float rc[BINSIZE];
+    float compareVector[BINSIZE];
     int halfn =n/2;
 
     //initialize speaking status
@@ -82,15 +81,13 @@ void main(void){
 	//initialize complex data array and output frequency magnitude array
 	complex_t complexData[SAMPLES];
 	complex_t total[HALF];
-	float magnitude[HALF];
-	float mel_filterbank_energy[26];
+	float mel_filterbank_energy[BINSIZE];
 	for(i=0;i<n;i++){
-	    if(n<halfn){
-	        total[i].real =0;
+	    if(i<halfn){
+	        total[i].real=0;
 	        total[i].imag=0;
-	        magnitude[i] = 0;
 	    }
-	    if(i<26){
+	    if(i<binSize){
 	        mel_filterbank_energy[i]=0;
             compareVector[i] =0;
             fc[i] =0;
@@ -106,13 +103,11 @@ void main(void){
 	float tsin[HALF];
 	float tcos[HALF];
 	float hamming[SAMPLES];
-	int start =n-100;
+	int w,m;
 	create_tables(tcos,tsin,hamming);
 
 	//initialize buffer status
 	set_buffer_status(PrimaryBuff, STANDBYE);
-	set_buffer_status(SecondaryBuff,STANDBYE);
-
 
 	__enable_interrupt();
 
@@ -124,43 +119,22 @@ void main(void){
 	    }
 
 	    if(speakingStatus.speaking ==1){
-	        __enable_interrupts();
-	        if((PrimaryBuff->num_items == start) && (SecondaryBuff->standbye==1)){
-                set_buffer_status(SecondaryBuff,FILL);
-	        }
 	        if(buffer_full(PrimaryBuff)==1){
-	            set_buffer_status(PrimaryBuff, PROCESS);
-	            fftCalculation(complexData,tcos,tsin,magnitude,hamming);
-                for(i=0;i<halfn;i++){
-                    total[i].real+= complexData[i].real;
-                    total[i].imag+= complexData[i].imag;
-                }
-                fftcount++;
-	            NOP ^= BIT0; //breakpoint
-	        }
-	        if(buffer_full(SecondaryBuff)==1){
-	            set_buffer_status(SecondaryBuff,PROCESS);
-                fftCalculation(complexData,tcos,tsin,magnitude,hamming);
-                for(i=0;i<halfn;i++){
-                    total[i].real+= complexData[i].real;
-                    total[i].imag+= complexData[i].imag;
-                }
-                fftcount++;
-                NOP ^= BIT0; //breakpoint
-	        }
-
-	        //calculating magnitude in frequency bins
-	        if(speakingStatus.finishSpeaking==1){
 	            __disable_interrupt();
-	            calculate_magnitude_and_compare(total,magnitude,fc,bc,lc,rc,compareVector,mel_filterbank_energy);
-	            //clear buffers
-	            clear_buffer(PrimaryBuff);
-	            clear_buffer(SecondaryBuff);
-	            //reset buffer status
-	            set_buffer_status(PrimaryBuff, STANDBYE);
-	            set_buffer_status(SecondaryBuff,STANDBYE);
-	            thresholdcount =0;
-	            P1->OUT &= ~BIT0;//end processing
+	            set_buffer_status(PrimaryBuff, PROCESS);
+                for(w=0;w<1;w++){
+                    fftCalculation(complexData,tcos,tsin,hamming);
+                    for(m=0;m<halfn;m++){
+                        total[m].real += complexData[m].real;
+                        total[m].imag += complexData[m].imag;
+                    }
+                }
+                calculate_magnitude_and_compare(total,fc,bc,lc,rc,compareVector,mel_filterbank_energy);
+                P1->OUT &= ~BIT0;//end processing
+                thresholdcount =0;
+                clear_buffer(PrimaryBuff);
+                set_buffer_status(PrimaryBuff, STANDBYE);
+                set_speaking_status(END);
 	            __enable_interrupt();
 	        }
 	    }

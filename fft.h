@@ -14,7 +14,7 @@ typedef struct{
     float real;
     float imag;
 }complex_t;
-void fftCalculation(complex_t complexData[],float tcos[],float tsin[],float magnitude[],float hamming[]);
+void fftCalculation(complex_t complexData[],float tcos[],float tsin[],float hamming[]);
 unsigned int reverse_bits(int index, int bits);
 void create_tables(float tcos[], float tsin[],float hamming[]);
 

@@ -22,8 +22,9 @@ typedef struct{
     volatile int rightcommand;
 }Status_t;
 
-void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[]);
+void calculate_magnitude_and_compare(complex_t total[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[]);
 void test_threshold();
+//void fftsum(complex_t total[][],complex_t data[],int index);
 void set_speaking_status(uint8_t status);
 void newline();
 void ftoa(float n, char *res, int afterpoint);

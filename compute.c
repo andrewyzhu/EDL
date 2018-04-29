@@ -25,15 +25,14 @@
 #define RECORD (uint8_t)(8)
 #define HALF (int)(256)
 
-extern int fftcount;
 extern Status_t speakingStatus;
 extern CircBuf_t * PrimaryBuff;
-extern CircBuf_t * SecondaryBuff;
 extern int thresholdcount;
 extern float forwardDifference;
 extern float backwardDifference;
 extern float leftDifference;
 extern float rightDifference;
+extern int binSize;
 extern int NOP;
 extern int n;
 extern int i;
@@ -44,7 +43,6 @@ void test_threshold(){
        P1->OUT |=BIT0; //start capturing and performing fft;
        set_speaking_status(START);
        set_buffer_status(PrimaryBuff,FILL);
-       set_buffer_status(SecondaryBuff,STANDBYE);
        __enable_interrupt();
        return;
     }
@@ -53,9 +51,9 @@ void test_threshold(){
     __enable_interrupt();
 }
 
-void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[]){
+void calculate_magnitude_and_compare(complex_t total[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[]){
     int halfn = n/2;
-    float power[HALF];
+    float power[512];
     int fftbin[28];
 
     for(i =0;i<halfn;i++){
@@ -69,10 +67,12 @@ void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float f
             mel_filterbank_energy[i]=0;
         }
     }
-    power[0]=power[4];
-    power[1]=power[4];
-    power[2]=power[4];
-    power[3]=power[4];
+    power[0]=power[6];
+    power[1]=power[6];
+    power[2]=power[6];
+    power[3]=power[6];
+    power[4]=power[6];
+    power[5]=power[6];
 
     melFilterCenters(fftbin);
     melCoefficients(power,fftbin,mel_filterbank_energy);
@@ -82,7 +82,8 @@ void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float f
     backwardDifference=0;
     leftDifference=0;
     rightDifference=0;
-    for(i=0;i<26;i++){
+
+    for(i=0;i<binSize;i++){
         if(speakingStatus.comparemode ==1){
             compareVector[i] = mel_filterbank_energy[i];
             rightDifference+=(compareVector[i]-rc[i]);
@@ -105,16 +106,15 @@ void calculate_magnitude_and_compare(complex_t total[],float magnitude[],float f
             }
         }
     }
-    forwardDifference=sqrt(forwardDifference*forwardDifference)/halfn;
-    backwardDifference=sqrt(backwardDifference*backwardDifference)/halfn;
-    leftDifference=sqrt(leftDifference*leftDifference)/halfn;
-    rightDifference=sqrt(rightDifference*rightDifference)/halfn;
+    forwardDifference=sqrt(forwardDifference*forwardDifference)/binSize;
+    backwardDifference=sqrt(backwardDifference*backwardDifference)/binSize;
+    leftDifference=sqrt(leftDifference*leftDifference)/binSize;
+    rightDifference=sqrt(rightDifference*rightDifference)/binSize;
 
     if(speakingStatus.comparemode ==1){
         look_for_match(forwardDifference,backwardDifference,leftDifference,rightDifference);
         //print_diff(forwardDifference,backwardDifference,leftDifference,rightDifference);
     }
-    fftcount=0;
 }
 
 
@@ -226,6 +226,36 @@ void look_for_match(float forwardDifference,float backwardDifference,float leftD
 
     }
 }
+/*void fftsum(complex_t total[][],complex_t data[],int index){
+    int c,t;
+    int halfn=n/2;
+    for(c=0;c<halfn;c++){
+        if(index<4){
+            total[c][0] = data[c];
+        }
+        else if(index<8){
+            total[c][1] = data[c];
+        }
+        else if(index<12){
+            total[c][2] = data[c];
+        }
+        else if(index<16){
+            total[c][3] = data[c];
+        }
+        else if(index<20){
+            total[c][4] = data[c];
+        }
+        else if(index<24){
+            total[c][5] = data[c];
+        }
+        else if(index<28){
+            total[c][6] = data[c];
+        }
+        else if(index<32){
+            total[c][7] = data[c];
+        }
+   }
+}*/
 
 
 void print_diff(float diff1,float diff2,float diff3,float diff4){

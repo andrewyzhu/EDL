@@ -10,8 +10,8 @@
 
 extern uint16_t sound;
 extern CircBuf_t * PrimaryBuff;
-extern CircBuf_t * SecondaryBuff;
 extern int thresholdcount;
+int count =0;
 
 void configureADC(){
     //Microphone GPIO
@@ -26,7 +26,7 @@ void configureADC(){
                    ADC14_CTL0_SHP|         // ADC14 sample-and-hold pulse-mode
                    ADC14_CTL0_CONSEQ_0|    // Single-channel, single-conversion
                    ADC14_CTL0_SSEL__SMCLK; // SMCLK Clock source
-    ADC14->CTL1 = (ADC14_CTL1_RES_2); // 14 bit mode
+    ADC14->CTL1 = (ADC14_CTL1_RES_2); // 12 bit mode
     ADC14->IER0 |= ADC14_IER0_IE0; // Enable interrupt for MEM0
     ADC14->MCTL[0] = (ADC14_MCTLN_INCH_0 | ADC14_MCTLN_VRSEL_0);
     while(!(REF_A->CTL0 & REF_A_CTL0_GENRDY)); // Wait for ref generator to settle
@@ -45,11 +45,7 @@ void ADC14_IRQHandler() {
             thresholdcount++;
         }
         if(PrimaryBuff->filling ==1){
-            add_item_to_buffer(PrimaryBuff,sound);
-        }
-        //filling secondary buffer with audio input
-        if(SecondaryBuff->filling ==1){
-            add_item_to_buffer(SecondaryBuff,sound);
+            add_item_to_buffer(PrimaryBuff,ADC14->MEM[0]);
         }
     }
 

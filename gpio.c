@@ -26,6 +26,12 @@ void configureGPIO(){
     P1->SEL1 &= ~BIT0;
     P1->DIR |= BIT0;
     P1->OUT &= ~BIT0;
+
+    P3->SEL0 &= ~BIT6;
+    P3->SEL1 &= ~BIT6;
+    P3->DIR |= BIT6;
+    P3->OUT &= ~BIT6;
+
     //configure rgb LEDs
     P1->SEL0 &= ~BIT0;//red
     P2->SEL1 &= ~BIT0;
