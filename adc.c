@@ -41,7 +41,7 @@ void ADC14_IRQHandler() {
     if(ADC14_IFGR0_IFG0){
         sound =ADC14->MEM[0];
         //filling primary buffer with audio input
-        if((sound>2500) && (sound <20000)){
+        if((sound>2700) && (sound <20000)){
             thresholdcount++;
         }
         if(PrimaryBuff->filling ==1){

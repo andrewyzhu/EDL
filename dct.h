@@ -1,9 +1,10 @@
 /*
  * dct.h
  *
- *  Created on: Apr 26, 2018
- *      Author: anzh1
+ *  Created on: Apr 29, 2018
+ *      Author: samaustin
  */
+
 #include "msp.h"
 #include <math.h>
 

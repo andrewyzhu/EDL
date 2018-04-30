@@ -14,16 +14,6 @@
 #include <math.h>
 
 #define TWO_PI 6.283185
-#define STANDBYE (uint8_t)(3)
-#define THRESHOLD (uint8_t)(2)
-#define FILL (uint8_t)(1)
-#define PROCESS (uint8_t)(0)
-#define START (uint8_t)(4)
-#define RESUME (uint8_t)(4)
-#define END (uint8_t)(6)
-#define COMPARE (uint8_t)(7)
-#define RECORD (uint8_t)(8)
-#define IDEL (uint8_t)(9)
 #define BITS (int)(10)
 
 extern int i;
@@ -44,8 +34,8 @@ void create_tables(float tcos[], float tsin[],float hamming[]){
     }
 }
 //the reverse_bits function was provided from http://www.geeksforgeeks.org/write-an-efficient-c-program-to-reverse-bits-of-a-number/
-unsigned int reverse_bits(int num, int bits){
-    unsigned int reverse_num = 0;
+int reverse_bits(int num, int bits){
+    int reverse_num = 0;
     int h;
     for (h = 0; h < bits; h++)
     {
@@ -55,37 +45,36 @@ unsigned int reverse_bits(int num, int bits){
     return reverse_num;
 }
 
-void fftCalculation( complex_t complexData[],float tcos[],float tsin[],float hamming[]){
-    float holdreal,hold,holdimag; //holding value
-    int  k, j,l,size;
+
+void fftCalculation(complex_t total[],float tcos[],float tsin[],float hamming[]){
+    float holdreal,holdimag,temp; //holding value
+    int  k, j,l,size,halfspan,stepspan,b;
+    complex_t complexData[512];
     //transfer data in buffer to complex_data array
     for(i=0;i<n;i++){
-        complexData[i].real =remove_item_from_buffer(PrimaryBuff);
-        complexData[i].real *= hamming[i];
-        //complexData[i].real *=0.01;
-        complexData[i].imag=0;
-        if(complexData[i].real >3200){
-            NOP^=BIT0;
-        }
+        complexData[i].real =0;
+        complexData[i].imag =0;
     }
-    NOP^=BIT0;
-    //reversing bits for fft conversion
     for(i=0;i<n;i++){
-        int new_reversed = reverse_bits(i,BITS);
-        if(new_reversed >i){
-            hold = complexData[i].real;
-            complexData[i].real = complexData[new_reversed].real;
-            complexData[new_reversed].real = hold;
-            hold = complexData[i].imag;
-            complexData[i].imag =complexData[new_reversed].imag;
-            complexData[new_reversed].imag = hold;
-        }
+        complexData[i].real = remove_item_from_buffer(PrimaryBuff);
+        complexData[i].real *= hamming[i];
     }
 
+    for (b = 0; b < n; b++) {
+        int new = reverse_bits(b, 9);
+        if (new > b){
+            temp = complexData[b].real;
+            complexData[b].real = complexData[new].real;
+            complexData[new].real= temp;
+            temp = complexData[b].imag;
+            complexData[b].imag = complexData[new].imag;
+            complexData[new].imag = temp;
+        }
+     }
     //fft conversion
     for(size = 2; size <= n; size *= 2){
-        int halfspan = size/2;
-        int stepspan = n/size;
+        halfspan = size/2;
+        stepspan = n/size;
         for(i =0;i<n; i+=size){
             for(j = i, k = 0 ; j < (i + halfspan) ; j++, k += stepspan){
                 l =j + halfspan;
@@ -99,6 +88,12 @@ void fftCalculation( complex_t complexData[],float tcos[],float tsin[],float ham
                 complexData[j].imag =complexData[j].imag + holdimag;
             }
         }
+        if (size == n)  // Prevent overflow in 'size *= 2'
+                    break;
+    }
+    for(i=0;i<(n/2);i++){
+        total[i].real += complexData[i].real;
+        total[i].imag += complexData[i].imag;
     }
 
 }

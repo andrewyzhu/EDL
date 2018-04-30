@@ -11,9 +11,9 @@
 #include "circbuf.h"
 #include <string.h>
 #include "uart.h"
-#include "pwm.h"
 #include"mel_filterbank.h"
 #include "gpio.h"
+#include "dct.h"
 
 #define STANDBYE (uint8_t)(3)
 #define FILL (uint8_t)(1)
@@ -51,20 +51,21 @@ void test_threshold(){
     __enable_interrupt();
 }
 
-void calculate_magnitude_and_compare(complex_t total[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mel_filterbank_energy[]){
+void calculate_magnitude_and_compare(complex_t total[],float fc[],float bc[],float lc[],float rc[],float compareVector[],float mfcc[]){
     int halfn = n/2;
-    float power[512];
+    float power[HALF];
+    //float dct_results[26];
+    //float mel_filterbank_energy[26];
     int fftbin[28];
-
     for(i =0;i<halfn;i++){
         power[i]=0;
-        total[i].real = total[i].real/n;
-        total[i].imag = total[i].imag/n;
+        total[i].real = total[i].real/halfn;
+        total[i].imag = total[i].imag/halfn;
         power[i] = total[i].real*total[i].real+ total[i].imag*total[i].imag;
         total[i].real =0;
         total[i].imag=0;
         if(i<26){
-            mel_filterbank_energy[i]=0;
+           // mel_filterbank_energy[i]=0;
         }
     }
     power[0]=power[6];
@@ -75,8 +76,9 @@ void calculate_magnitude_and_compare(complex_t total[],float fc[],float bc[],flo
     power[5]=power[6];
 
     melFilterCenters(fftbin);
-    melCoefficients(power,fftbin,mel_filterbank_energy);
-    logEnergies(mel_filterbank_energy);
+    melCoefficients(power,fftbin,mfcc);
+    logEnergies(mfcc);
+    //dct(mel_filterbank_energy,dct_results,mfcc);
 
     forwardDifference =0;
     backwardDifference=0;
@@ -85,7 +87,7 @@ void calculate_magnitude_and_compare(complex_t total[],float fc[],float bc[],flo
 
     for(i=0;i<binSize;i++){
         if(speakingStatus.comparemode ==1){
-            compareVector[i] = mel_filterbank_energy[i];
+            compareVector[i] = mfcc[i];
             rightDifference+=(compareVector[i]-rc[i]);
             leftDifference+=(compareVector[i]-lc[i]);
             backwardDifference+=(compareVector[i]-bc[i]);
@@ -93,16 +95,16 @@ void calculate_magnitude_and_compare(complex_t total[],float fc[],float bc[],flo
         }
         else{
             if(speakingStatus.rightcommand ==1){
-                rc[i] = mel_filterbank_energy[i];
+                rc[i] = mfcc[i];
             }
             else if(speakingStatus.leftcommand ==1){
-                lc[i] = mel_filterbank_energy[i];
+                lc[i] = mfcc[i];
             }
             else if(speakingStatus.backwardcommand ==1){
-                bc[i] = mel_filterbank_energy[i];
+                bc[i] = mfcc[i];
             }
             else{
-                fc[i] = mel_filterbank_energy[i];
+                fc[i] = mfcc[i];
             }
         }
     }

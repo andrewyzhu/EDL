@@ -13,7 +13,7 @@
 #include "fft.h"
 #include "compute.h"
 #include "uart.h"
-#include "pwm.h"
+#include "dct.h"
 
 #define STANDBYE (uint8_t)(3)
 #define FILL (uint8_t)(1)
@@ -23,6 +23,7 @@
 #define END (uint8_t)(6)
 #define COMPARE (uint8_t)(7)
 #define RECORD (uint8_t)(8)
+#define BITS (int)(10)
 
 //global variables
 volatile uint16_t sound;
@@ -33,14 +34,13 @@ volatile float forwardDifference=0;
 volatile float backwardDifference=0;
 volatile float leftDifference=0;
 volatile float rightDifference=0;
-volatile uint8_t lock=1;
 volatile int NOP =1;
 volatile int n = 512;
 volatile int binSize =26;
-volatile int srate =512;
+volatile int buffsize =7168;
 #define SAMPLES (int)(512)
 #define HALF (int)(256)
-#define BINSIZE (uint8_t)(26)
+#define DCTSIZE (uint8_t)(26)
 volatile int i;
 volatile int thresholdcount =0;
 
@@ -59,13 +59,13 @@ void main(void){
 
     //creating buffers in dynamic memory
     PrimaryBuff = malloc(sizeof(CircBuf_t));
-    initialize_buffer(PrimaryBuff,srate);
+    initialize_buffer(PrimaryBuff,buffsize);
 
-    float fc[BINSIZE];
-    float bc[BINSIZE];
-    float lc[BINSIZE];
-    float rc[BINSIZE];
-    float compareVector[BINSIZE];
+    float fc[DCTSIZE];
+    float bc[DCTSIZE];
+    float lc[DCTSIZE];
+    float rc[DCTSIZE];
+    float compareVector[DCTSIZE];
     int halfn =n/2;
 
     //initialize speaking status
@@ -79,24 +79,21 @@ void main(void){
     speakingStatus.rightcommand =0;
 
 	//initialize complex data array and output frequency magnitude array
-	complex_t complexData[SAMPLES];
 	complex_t total[HALF];
-	float mel_filterbank_energy[BINSIZE];
+	float mfcc[DCTSIZE];
 	for(i=0;i<n;i++){
 	    if(i<halfn){
 	        total[i].real=0;
 	        total[i].imag=0;
 	    }
 	    if(i<binSize){
-	        mel_filterbank_energy[i]=0;
+	        mfcc[i]=0;
             compareVector[i] =0;
             fc[i] =0;
             bc[i] =0;
             rc[i] =0;
             lc[i] =0;
 	    }
-	    complexData[i].real = 0;
-        complexData[i].imag = 0;
 	}
 
 	//creating twiddles
@@ -122,19 +119,20 @@ void main(void){
 	        if(buffer_full(PrimaryBuff)==1){
 	            __disable_interrupt();
 	            set_buffer_status(PrimaryBuff, PROCESS);
-                for(w=0;w<1;w++){
-                    fftCalculation(complexData,tcos,tsin,hamming);
-                    for(m=0;m<halfn;m++){
-                        total[m].real += complexData[m].real;
-                        total[m].imag += complexData[m].imag;
-                    }
+                for(w=0;w<14;w++){
+                    fftCalculation(total,tcos,tsin,hamming);
+                    NOP^=BIT0;
                 }
-                calculate_magnitude_and_compare(total,fc,bc,lc,rc,compareVector,mel_filterbank_energy);
+                calculate_magnitude_and_compare(total,fc,bc,lc,rc,compareVector,mfcc);
                 P1->OUT &= ~BIT0;//end processing
                 thresholdcount =0;
                 clear_buffer(PrimaryBuff);
                 set_buffer_status(PrimaryBuff, STANDBYE);
                 set_speaking_status(END);
+                for(m=0;m<halfn;m++){
+                    total[m].real= 0;
+                    total[m].imag= 0;
+                }
 	            __enable_interrupt();
 	        }
 	    }

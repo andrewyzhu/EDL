@@ -1,25 +1,25 @@
 /*
  * mel_filterbank.c
  *
- *  Created on: Apr 23, 2018
- *      Author: anzh1
+ *  Created on: Apr 24, 2018
+ *      Author: samaustin
  */
 #include "mel_filterbank.h"
 
 //26 filterbanks ranging from 20 Hz to 3000 Hz.
 //Formula to convert from Hertz to Mels is: 1125ln(1+f/700)
-#define filter_Mel_low_edge (double)(31.6922)  //1125ln(1+20/700), 20 Hz is lower boundary of human speech
-#define filter_Mel_high_edge (double)(2835) //conversion of 8000 Hz to Mels, The maximum frequency we can accurately sample is 8000 Hz. As our sampling frequency is 16000 Hz
-#define filter_width (double)(103.8262) //we want 26 filters that are evenly distributed on the Mel scale from 31.6922 to 2835
+#define filter_Mel_low_edge (float)(31.6922)  //1125ln(1+20/700), 20 Hz is lower boundary of human speech
+#define filter_Mel_high_edge (float)(2835) //conversion of 8000 Hz to Mels, The maximum frequency we can accurately sample is 8000 Hz. As our sampling frequency is 16000 Hz
+#define filter_width (float)(103.8262) //we want 26 filters that are evenly distributed on the Mel scale from 31.6922 to 2835
 
 //28 mel points
 void melFilterCenters(int * fftBin){
-    double melCenters[26];
+    float melCenters[26];
     int i;
     for(i = 0; i < 26; i++){
         melCenters[i] = filter_Mel_low_edge + (i+1)*filter_width;
     }
-    double hertzPoints[28];
+    float hertzPoints[28];
     hertzPoints[0] = 20;
     hertzPoints[27] = 8000;
     int j;
@@ -228,6 +228,6 @@ void melCoefficients(float * magnitude, int * filterbank, float * filterbank_ene
 void logEnergies(float * filterbank_energies){
     int i;
     for(i = 0; i < 26; i++){
-        filterbank_energies[i] = (float)log10((double)filterbank_energies[i]);
+        filterbank_energies[i] = (float)log10((float)filterbank_energies[i]);
     }
 }

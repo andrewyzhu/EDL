@@ -1,11 +1,9 @@
 /*
  * dct.c
  *
- *  Created on: Apr 26, 2018
- *      Author: anzh1
+ *  Created on: Apr 29, 2018
+ *      Author: samaustin
  */
-
-
 #include "dct.h"
 
 void dct(float * mel, float * dct_result, float * mfcc){
@@ -22,3 +20,4 @@ void dct(float * mel, float * dct_result, float * mfcc){
         mfcc[k] = dct_result[k+1];
     }
 }
+

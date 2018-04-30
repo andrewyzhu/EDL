@@ -14,7 +14,7 @@ extern uint16_t sound;
 void configureSYSTICK(){
     SysTick->CTRL |= SysTick_CTRL_CLKSOURCE_Msk |SysTick_CTRL_ENABLE_Msk;
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
-    SysTick->LOAD =375;//16kHz
+    SysTick->LOAD =750;//16kHz
 }
 void SysTick_Handler(){
     countsystick++;
