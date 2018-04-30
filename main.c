@@ -119,7 +119,7 @@ void main(void){
 	        if(buffer_full(PrimaryBuff)==1){
 	            __disable_interrupt();
 	            set_buffer_status(PrimaryBuff, PROCESS);
-                for(w=0;w<14;w++){
+                while(speakingStatus.speaking ==1){
                     fftCalculation(total,tcos,tsin,hamming);
                     NOP^=BIT0;
                 }

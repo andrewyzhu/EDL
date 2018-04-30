@@ -15,6 +15,7 @@
 
 #define TWO_PI 6.283185
 #define BITS (int)(10)
+#define END (uint8_t)(6)
 
 extern int i;
 extern int n;
@@ -47,17 +48,25 @@ int reverse_bits(int num, int bits){
 
 
 void fftCalculation(complex_t total[],float tcos[],float tsin[],float hamming[]){
-    float holdreal,holdimag,temp; //holding value
+    float holdreal,holdimag,temp,big; //holding value
     int  k, j,l,size,halfspan,stepspan,b;
     complex_t complexData[512];
     //transfer data in buffer to complex_data array
+    big=0;
     for(i=0;i<n;i++){
         complexData[i].real =0;
         complexData[i].imag =0;
     }
     for(i=0;i<n;i++){
         complexData[i].real = remove_item_from_buffer(PrimaryBuff);
+        big=complexData[i].real;
         complexData[i].real *= hamming[i];
+        if(big<complexData[i].real){
+            big=complexData[i].real;
+        }
+    }
+    if(big<2600){
+        set_speaking_status(END);
     }
 
     for (b = 0; b < n; b++) {
